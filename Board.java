@@ -1,4 +1,5 @@
 package CSCI1933P2;
+
 public class Board {
     // Instance variables (add more if you need)
     private Piece[][] board;
@@ -9,6 +10,7 @@ public class Board {
      */
     public Board() {
         // initialize the board to chessboard dimensions.
+        board = new Piece[8][8];
     }
 
     // Accessor Methods
@@ -20,6 +22,7 @@ public class Board {
      * @return          The piece at the specified row and column of the board.
      */
     public Piece getPiece(int row, int col) {
+        return board[row][col];
     }
 
     /**
@@ -29,6 +32,7 @@ public class Board {
      * @param piece     The piece to place at the specified row and column.
      */
     public void setPiece(int row, int col, Piece piece) {
+        board [row][col] = piece;
     }
 
     // Movement helper functions
@@ -47,7 +51,18 @@ public class Board {
      * @param isBlack   The expected color of the starting piece.
      * @return True if the above conditions are met, false otherwise.
      */
+
     public boolean verifySourceAndDestination(int startRow, int startCol, int endRow, int endCol, boolean isBlack) {
+        // Inverse check
+        if (startRow < 0 || startCol< 0 || endRow < 0 || endCol < 0 ||
+                startRow >=8 || startCol >=8 || endRow >=8 || endCol >=8 ||
+                board[startRow][startCol] == null ||
+                board[startRow][startCol].getIsBlack() != isBlack ||
+                (board[endRow][endCol] != null && board[endRow][endCol].getIsBlack() == isBlack)) {
+            return false;
+        }
+        // If all conditions are met, return true
+        return true;
     }
 
     /**
@@ -65,6 +80,12 @@ public class Board {
      * @return True if the source and destination squares are adjacent, false otherwise.
      */
     public boolean verifyAdjacent(int startRow, int startCol, int endRow, int endCol) {
+        // Calculate the distance of rows and columns between two positions
+        int distRow = Math.abs(startRow - endRow);
+        int distCol = Math.abs(startCol- endCol);
+        // Check if the distance of rows and cols are both less than or equal to 1
+        return (distRow == 0 && distCol == 1|| distRow == 1 && distCol == 0 || distRow == 1 && distCol == 1 || distRow == 0 && distCol == 0);
+
     }
 
     /**
@@ -77,7 +98,26 @@ public class Board {
      * @return True if source and destination are in same row with no pieces between them, false otherwise.
      */
     public boolean verifyHorizontal(int startRow, int startCol, int endRow, int endCol) {
+        // If not moving horizontally, return false
+        if (startRow != endRow) {
+            return false;
+        }
+
+        // If start and end positions are the same, return true (no movement)
+        if (startCol == endCol) {
+            return true;
+        }
+
+        // Check for if it is no pieces between them
+        for (int i = Math.min(startCol, endCol) + 1; i < Math.max(startCol, endCol); i++) {
+            if (board[startRow][i] != null) {
+                return false;
+            }
+        }
+
+        return true;
     }
+
 
     /**
      * Verifies that a source and destination are in the same column and that there are no pieces on squares
@@ -88,7 +128,27 @@ public class Board {
      * @param endCol    The ending column of the move.
      * @return True if source and destination are in same column with no pieces between them, false otherwise.
      */
+
+
     public boolean verifyVertical(int startRow, int startCol, int endRow, int endCol) {
+        // If not moving vertically, return false
+        if (startCol != endCol) {
+            return false;
+        }
+
+        // If start and end positions are the same, return true (no movement)
+        if (startRow == endRow) {
+            return true;
+        }
+
+        // Check for if it is no pieces between them
+        for (int i = Math.min(startRow, endRow) + 1; i < Math.max(startRow, endRow); i++) {
+            if (board[i][startCol] != null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -101,6 +161,37 @@ public class Board {
      * @return True if source and destination are on the same diagonal with no pieces between them, false otherwise.
      */
     public boolean verifyDiagonal(int startRow, int startCol, int endRow, int endCol) {
+        // Calculate the row and cols distance of two positions
+        // Same rows and cols distance means diagonal
+        int distRow = Math.abs(startRow - endRow);
+        int distCol = Math.abs(startCol-endCol);
+
+        //if the piece stay at the same position return true
+        if(distRow ==0 && distCol ==0){
+            return true;
+        }
+        // check if the move is with same the amount of rows and cols change to verify move diagonally
+        if( distRow != distCol){
+            return false;
+        }else{
+            // iterate through to check if no pieces between them
+            for (int increment= 1; increment < distRow; increment++){
+                if(startRow < endRow && startCol <endCol
+                   && board[startRow + increment][startCol+increment] != null){
+                    return false;
+                } else if (startRow <endRow && startCol >endCol
+                        && board [startRow + increment][startCol -increment] != null) {
+                    return false;
+                } else if (startRow > endRow && startCol < endCol
+                        && board [startRow - increment][startCol +increment] != null) {
+                    return false;
+                } else if (startRow > endRow && startCol > endCol
+                        && board[startRow -increment][startCol -increment] != null) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     // Game functionality methods
@@ -115,6 +206,18 @@ public class Board {
      * @return Whether the move was successfully completed or not. (Moves are not completed if they are not legal.)
      */
     public boolean movePiece(int startRow, int startCol, int endRow, int endCol) {
+        // check if the start piece is not null and the move is legal
+        if (board[startRow][startCol] != null && board[startRow][startCol].isMoveLegal(this,endRow,endCol) ){
+            // set the end position with the piece on the start position
+            board[endRow][endCol] = board[startRow][startCol];
+            // update the piece to new position
+            board[endRow][endCol].setPosition(endRow,endCol);
+            // clear the start position to null
+            board[startRow][startCol] = null;
+            return true;
+        }else{
+            return false;
+        }
 
     }
 
@@ -123,6 +226,20 @@ public class Board {
      * @return If the game is in a game over state.
      */
     public boolean isGameOver() {
+        //create an object to count the kings on the board
+        int kingCount = 0;
+
+        // iterate through the board to find the king
+        for (int row = 0; row< board.length; row++){
+            for (int col = 0; col <board[row].length; col++){
+                Piece piece = this.getPiece(row,col);
+                // check the piece if it is a king type instance
+                if(piece instanceof King){
+                    kingCount++;
+                }
+            }
+        }
+        return kingCount<2;
 
     }
 
@@ -130,6 +247,12 @@ public class Board {
      * Sets all indexes in the board to null
      */
     public void clear() {
+        // Iterate through each position of the board and set them to null
+        for (int i =0; i< board.length; i++){
+            for (int j = 0; j < board[i].length; j++){
+                board[i][j] = null;
+            }
+        }
     }
 
 
@@ -171,4 +294,3 @@ public class Board {
         return out.toString();
     }
 }
-
